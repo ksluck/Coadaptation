@@ -104,6 +104,8 @@ class Coadaptation(object):
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
+        else:
+            utils.move_to_cuda(self._config)
 
         while not(done) and nmbr_of_steps <= self._episode_length:
             nmbr_of_steps += 1
@@ -135,6 +137,8 @@ class Coadaptation(object):
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
+        else:
+            utils.move_to_cuda(self._config)
 
         while not(done) and nmbr_of_steps <= self._episode_length:
             nmbr_of_steps += 1
