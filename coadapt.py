@@ -63,6 +63,8 @@ class Coadaptation(object):
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
+        else:
+            utils.move_to_cuda(self._config)
         self._policy_cpu = self._rl_alg_class.get_policy_network(SoftActorCritic.create_networks(env=self._env, config=config))
         utils.move_to_cuda(self._config)
 
