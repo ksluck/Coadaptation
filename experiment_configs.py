@@ -11,6 +11,7 @@ sac_pso_batch = {
     'state_batch_size' : 32,
     'initial_episodes' : 3,
     'use_gpu' : True,
+    'use_cpu_for_rollout': False,
     'cuda_device': 0,
     'exploration_strategy': 'random',
     'design_optim_method' : 'pso_batch',

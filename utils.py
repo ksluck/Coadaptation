@@ -25,3 +25,14 @@ def copy_policie_to_cpu(policy_cpu, policy_gpu):
     policy_cpu = policy_cpu.cpu()
     policy_cpu.eval()
     return policy_cpu
+
+def copy_network(network_to, network_from, force_cpu=False):
+    policy_dict = policy_gpu.state_dict()
+    if force_cpu:
+        for key, val in policy_dict.items():
+            policy_dict[key] = val.cpu()
+    policy_cpu.load_state_dict(policy_dict)
+    if force_cpu:
+        policy_cpu = policy_cpu.cpu()
+    policy_cpu.eval()
+    return policy_cpu
