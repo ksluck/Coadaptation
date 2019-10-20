@@ -33,6 +33,8 @@ def copy_network(network_to, network_from, force_cpu=False):
             network_from_dict[key] = val.cpu()
     network_to.load_state_dict(network_from_dict)
     if force_cpu:
-        network_to = network_to.cpu()
+        network_to = network_to.to('cpu')
+    else:
+        network_to.to(ptu.device)
     network_to.eval()
     return network_to
