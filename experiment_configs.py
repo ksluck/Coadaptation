@@ -1,8 +1,8 @@
 
 
-exp_test = {
+sac_pso_batch = {
     'name' : 'Experiment Test',
-    'data_folder' : 'data_exp_test',
+    'data_folder' : 'data_exp_sac_pso_batch',
     'nmbr_random_designs' : 0,
     'iterations_init' : 300,
     'iterations_random': 100,
@@ -63,5 +63,6 @@ exp_test = {
     }
 
 config_dict = {
-    'test' : exp_test,
+    'sac_pso_batch' : sac_pso_batch,
+
     }
