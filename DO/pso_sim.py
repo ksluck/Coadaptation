@@ -11,8 +11,9 @@ class PSO_simulation(Design_Optimization):
         self._replay = replay
         self._env = env
 
-        self._episode_length = self._config['pipeline_config']['algo_params']['num_steps_per_epoch']
-        self._reward_scale = self._config['pipeline_config']['algo_params']['reward_scale']
+        # TODO Make this independent of rl_algo config
+        self._episode_length = self._config['rl_algorithm_config']['algo_params']['num_steps_per_epoch']
+        self._reward_scale = self._config['rl_algorithm_config']['algo_params']['reward_scale']
 
 
     def optimize_design(self, design, q_network, policy_network):
