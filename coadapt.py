@@ -170,7 +170,7 @@ class Coadaptation(object):
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['population'])
         else:
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['individual'])
-        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, force_cpu=self._config['use_cpu_for_rollout'])
+        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
@@ -210,7 +210,7 @@ class Coadaptation(object):
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['population'])
         else:
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['individual'])
-        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, force_cpu=self._config['use_cpu_for_rollout'])
+        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()

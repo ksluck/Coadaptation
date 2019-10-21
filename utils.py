@@ -44,7 +44,7 @@ def copy_policie_to_cpu(policy_cpu, policy_gpu):
     policy_cpu.eval()
     return policy_cpu
 
-def copy_network(network_to, network_from, force_cpu=False):
+def copy_network(network_to, network_from, config, force_cpu=False):
     """ Copies networks and set them to device or cpu.
 
     Args:
@@ -58,10 +58,12 @@ def copy_network(network_to, network_from, force_cpu=False):
     if force_cpu:
         for key, val in network_from_dict.items():
             network_from_dict[key] = val.cpu()
+    else:
+        move_to_cuda(config)
     network_to.load_state_dict(network_from_dict)
     if force_cpu:
         network_to = network_to.to('cpu')
     else:
-        network_to.to("cuda:" + str(ptu.gpu_id) if ptu._use_gpu else "cpu")
+        network_to.to(ptu.device)
     network_to.eval()
     return network_to
