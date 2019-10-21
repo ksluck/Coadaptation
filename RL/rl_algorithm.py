@@ -4,8 +4,6 @@ class RL_algorithm(object):
 
     def __init__(self, config, env, replay, networks):
         self._config = config
-        if config['use_gpu']:
-          ptu.set_gpu_mode(True)
         self.file_str = config['data_folder_experiment']
 
         self._env = env
