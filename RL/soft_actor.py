@@ -13,8 +13,8 @@ class SoftActorCritic(RL_algorithm):
     def __init__(self, config, env, replay, networks):
         super().__init__(config, env, replay, networks)
 
-        self._variant_pop = config['pipeline_config']['algo_params_pop']
-        self._variant_spec = config['pipeline_config']['algo_params']
+        self._variant_pop = config['rl_algorithm_config']['algo_params_pop']
+        self._variant_spec = config['rl_algorithm_config']['algo_params']
 
         self._variant_pop['replay_buffer'] = self._replay
         self._variant_spec['replay_buffer'] = self._replay
@@ -81,8 +81,8 @@ class SoftActorCritic(RL_algorithm):
     def create_networks(env, config):
         obs_dim = int(np.prod(env.observation_space.shape))
         action_dim = int(np.prod(env.action_space.shape))
-        net_size = config['pipeline_config']['net_size']
-        hidden_sizes = [net_size] * config['pipeline_config']['network_depth']
+        net_size = config['rl_algorithm_config']['net_size']
+        hidden_sizes = [net_size] * config['rl_algorithm_config']['network_depth']
         # hidden_sizes = [net_size, net_size, net_size]
         qf = FlattenMlp(
             hidden_sizes=hidden_sizes,

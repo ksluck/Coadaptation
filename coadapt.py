@@ -10,37 +10,79 @@ import os
 import csv
 
 def select_design_opt_alg(alg_name):
+    """ Selects the design optimization method.
+
+    Args:
+        alg_name: String which states the design optimization method. Can be
+            `pso_batch` or `pso_sim`.
+
+    Returns:
+        The class of a design optimization method.
+
+    Raises:
+        ValueError: If the string alg_name is unknown.
+    """
     if alg_name == "pso_batch":
         return PSO_batch
     elif alg_name == "pso_sim":
         return PSO_simulation
     else:
-        print("Design Optimization method not found.")
-        exit(0)
+        raise ValueError("Design Optimization method not found.")
 
 def select_environment(env_name):
+    """ Selects an environment.
+
+    Args:
+        env_name: Name (string) of the environment on which the experiment is to
+            be executed. Can be `HalfCheetah`.
+
+    Returns:
+        The class of an environment
+
+    Raises:
+        ValueError: If the string env_name is unknown.
+
+    """
     if env_name == 'HalfCheetah':
         return evoenvs.HalfCheetahEnv
     else:
-        print("Environment class not found.")
-        exit(0)
+        raise ValueError("Environment class not found.")
 
 def select_rl_alg(rl_name):
+    """ Selectes the reinforcement learning method.
+
+    Args:
+        rl_name: Name (string) of the rl method.
+
+    Returns:
+        The class of a reinforcement learning method.
+
+    Raises:
+        ValueError: If the string rl_name is unknown.
+    """
     if rl_name == 'SoftActorCritic':
         return SoftActorCritic
     else:
-        print('RL method not fund.')
-        exit(0)
+        raise ValueError('RL method not fund.')
 
 class Coadaptation(object):
+    """ Basic Co-Adaptaton class.
+
+    """
 
     def __init__(self, config):
+        """
+        Args:
+            config: A config dictonary.
+
+        """
 
         self._config = config
         utils.move_to_cuda(self._config)
 
-        self._episode_length = self._config['pipeline_config']['algo_params']['num_steps_per_epoch']
-        self._reward_scale = self._config['pipeline_config']['algo_params']['reward_scale']
+        # TODO This should not depend on rl_algorithm_config in the future
+        self._episode_length = self._config['rl_algorithm_config']['algo_params']['num_steps_per_epoch']
+        self._reward_scale = self._config['rl_algorithm_config']['algo_params']['reward_scale']
 
         self._env_class = select_environment(self._config['env']['env_name'])
         self._env = evoenvs.HalfCheetahEnv(config=self._config)
@@ -74,6 +116,13 @@ class Coadaptation(object):
         self._data_design_type = 'Initial'
 
     def initialize_episode(self):
+        """ Initializations required before the first episode.
+
+        Should be called before the first episode of a new design is
+        executed. Resets variables such as _data_rewards for logging purposes
+        etc.
+
+        """
         utils.copy_pop_to_ind(networks_pop=self._networks['population'], networks_ind=self._networks['individual'])
         # self._rl_alg.initialize_episode(init_networks = True, copy_from_gobal = True)
         self._rl_alg.episode_init()
@@ -83,6 +132,15 @@ class Coadaptation(object):
 
 
     def single_iteration(self):
+        """ A single iteration.
+
+        Makes all necessary function calls for a single iterations such as:
+            - Collecting training data
+            - Executing a training step
+            - Evaluate the current policy
+            - Log data
+
+        """
         print("Time for one iteration: {}".format(time.time() - self._last_single_iteration_time))
         self._last_single_iteration_time = time.time()
         self._replay.set_mode("species")
@@ -92,8 +150,18 @@ class Coadaptation(object):
         if self._episode_counter >= self._config['initial_episodes']:
             self._rl_alg.single_train_step(train_ind=True, train_pop=train_pop)
         self._episode_counter += 1
+        self.execute_policy()
+        self.save_logged_data()
 
     def collect_training_experience(self):
+        """ Collect training data.
+
+        This function executes a single episode in the environment using the
+        exploration strategy/mechanism and the policy.
+        The data, i.e. state-action-reward-nextState, is stored in the replay
+        buffer.
+
+        """
         state = self._env.reset()
         nmbr_of_steps = 0
         done = False
@@ -124,6 +192,13 @@ class Coadaptation(object):
         utils.move_to_cuda(self._config)
 
     def execute_policy(self):
+        """ Evaluates the current deterministic policy.
+
+        Evaluates the current policy in the environment by unrolling a single
+        episode in the environment.
+        The achieved cumulative reward is logged.
+
+        """
         state = self._env.reset()
         done = False
         reward_ep = 0.0
@@ -155,6 +230,8 @@ class Coadaptation(object):
         self._data_rewards.append(reward_ep)
 
     def save_networks(self):
+        """ Saves the networks on the disk.
+        """
         checkpoints_pop = {}
         for key in self._networks['population']:
             checkpoints_pop[key] = checkpoints_pop[key].state_dict()
@@ -171,9 +248,21 @@ class Coadaptation(object):
         torch.save(checkpoint, os.path.join(file_path, 'checkpoint_{}.chk'.format(self._counter)))
 
     def load_networks(self):
+        """ Loads netwokrs from the disk.
+        """
         pass
 
     def save_logged_data(self):
+        """ Saves the logged data to the disk as csv files.
+
+        This function creates a log-file in csv format on the disk. For each
+        design an individual log-file is creates in the experient-directory.
+        The first row states if the design was one of the initial designs
+        (as given by the environment), a random design or an optimized design.
+        The second row gives the design parameters (eta). The third row
+        contains all subsequent cumulative rewards achieved by the policy
+        throughout the reinforcement learning process on the current design.
+        """
         file_path = self._config['data_folder_experiment']
         current_design = self._env.get_current_design()
 
@@ -187,6 +276,14 @@ class Coadaptation(object):
             cwriter.writerow(self._data_rewards)
 
     def run(self):
+        """ Runs the Fast Evolution through Actor-Critic RL algorithm.
+
+        First the initial design loop is executed in which the rl-algorithm
+        is exeuted on the initial designs. Then the design-optimization
+        process starts.
+        It is possible to have different numbers of iterations for initial
+        designs and the design optimization process.
+        """
         iterations_init = self._config['iterations_init']
         iterations = self._config['iterations']
         design_cycles = self._config['design_cycles']
@@ -196,6 +293,20 @@ class Coadaptation(object):
         self._training_loop(iterations, design_cycles, exploration_strategy)
 
     def _training_loop(self, iterations, design_cycles, exploration_strategy):
+        """ The trianing process which optimizes designs and policies.
+
+        The function executes the reinforcement learning loop and the design
+        optimization process.
+
+        Args:
+            iterations: An integer stating the number of iterations/episodes
+                to be used per design during the reinforcement learning loop.
+            design_cycles: Integer stating how many designs to evaluate.
+            exploration_strategy: String which describes which
+                design exploration strategy to use. Is not used at the moment,
+                i.e. only the (uniform) random exploration strategy is used.
+
+        """
         self.initialize_episode()
         # TODO fix the following
         initial_state = self._env._env.reset()
@@ -215,8 +326,6 @@ class Coadaptation(object):
             # Reinforcement Learning
             for _ in range(iterations):
                 self.single_iteration()
-                self.execute_policy()
-                self.save_logged_data()
 
             # Design Optimization
             if i % 2 == 1:
@@ -232,6 +341,16 @@ class Coadaptation(object):
             self.initialize_episode()
 
     def _intial_design_loop(self, iterations):
+        """ The initial training loop for initial designs.
+
+        The initial training loop in which no designs are optimized but only
+        initial designs, provided by the environment, are used.
+
+        Args:
+            iterations: Integer stating how many training iterations/episodes
+                to use per design.
+
+        """
         self._data_design_type = 'Initial'
         for params in self._env.init_sim_params:
             self._design_counter += 1
@@ -241,5 +360,3 @@ class Coadaptation(object):
             # Reinforcement Learning
             for _ in range(iterations):
                 self.single_iteration()
-                self.execute_policy()
-                self.save_logged_data()
