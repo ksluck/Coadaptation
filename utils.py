@@ -62,6 +62,6 @@ def copy_network(network_to, network_from, force_cpu=False):
     if force_cpu:
         network_to = network_to.to('cpu')
     else:
-        network_to.to(ptu.device)
+        network_to.to("cuda:" + str(ptu.gpu_id) if ptu._use_gpu else "cpu")
     network_to.eval()
     return network_to
