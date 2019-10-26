@@ -1,0 +1,16 @@
+gtimer==1.0.0b5
+gym==0.12.1
+ipython==7.5.0
+ipython-genutils==0.2.0
+joblib==0.13.2
+multiworld==0.1.0
+numpy
+pickleshare==0.7.5
+ptyprocess==0.6.0
+pybullet==2.5.0
+pyswarms==1.0.2
+PyYAML==5.1
+torch
+torchvision
+xmltodict
+xmlutils

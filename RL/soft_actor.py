@@ -11,6 +11,16 @@ import torch
 class SoftActorCritic(RL_algorithm):
 
     def __init__(self, config, env, replay, networks):
+        """ Bascally a wrapper class for SAC from rlkit.
+
+        Args:
+            config: Configuration dictonary
+            env: Environment
+            replay: Replay buffer
+            networks: dict containing two sub-dicts, 'individual' and 'population'
+                which contain the networks.
+
+        """
         super().__init__(config, env, replay, networks)
 
         self._variant_pop = config['rl_algorithm_config']['algo_params_pop']
@@ -52,6 +62,11 @@ class SoftActorCritic(RL_algorithm):
         self._algorithm_pop.to(ptu.device)
 
     def episode_init(self):
+        """ Initializations to be done before the first episode.
+
+        In this case basically creates a fresh instance of SAC for the
+        individual networks and copies the values of the target network.
+        """
         self._algorithm_ind = SoftActorCritic_rlkit(
             env=self._env,
             policy=self._ind_policy,
@@ -69,6 +84,12 @@ class SoftActorCritic(RL_algorithm):
         self._algorithm_ind.to(ptu.device)
 
     def single_train_step(self, train_ind=True, train_pop=False):
+        """ A single trianing step.
+
+        Args:
+            train_ind: Boolean. If true the individual networks will be trained.
+            train_pop: Boolean. If true the population networks will be trained.
+        """
         if train_ind:
           self._algorithm_ind.num_updates_per_train_call = self._variant_spec['num_updates_per_epoch']
           self._algorithm_ind._try_to_train()
@@ -79,6 +100,19 @@ class SoftActorCritic(RL_algorithm):
 
     @staticmethod
     def create_networks(env, config):
+        """ Creates all networks necessary for SAC.
+
+        These networks have to be created before instantiating this class and
+        used in the constructor.
+
+        TODO: Maybe this should be reworked one day...
+
+        Args:
+            config: A configuration dictonary.
+
+        Returns:
+            A dictonary which contains the networks.
+        """
         obs_dim = int(np.prod(env.observation_space.shape))
         action_dim = int(np.prod(env.action_space.shape))
         net_size = config['rl_algorithm_config']['net_size']
@@ -112,7 +146,30 @@ class SoftActorCritic(RL_algorithm):
 
     @staticmethod
     def get_q_network(networks):
+        """ Returns the q network from a dict of networks.
+
+        This method extracts the q-network from the dictonary of networks
+        created by the function create_networks.
+
+        Args:
+            networks: Dict containing the networks.
+
+        Returns:
+            The q-network as torch object.
+        """
         return networks['qf']
 
+    @staticmethod
     def get_policy_network(networks):
+        """ Returns the policy network from a dict of networks.
+
+        This method extracts the policy network from the dictonary of networks
+        created by the function create_networks.
+
+        Args:
+            networks: Dict containing the networks.
+
+        Returns:
+            The policy network as torch object.
+        """
         return networks['policy']
