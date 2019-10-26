@@ -8,7 +8,7 @@ numpy
 pickleshare==0.7.5
 ptyprocess==0.6.0
 pybullet==2.5.0
-pyswarms==1.0.2
+pyswarms
 PyYAML==5.1
 torch
 torchvision
