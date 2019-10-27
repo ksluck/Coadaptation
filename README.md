@@ -32,12 +32,15 @@ repository can be found [here](https://github.com/bulletphysics/bullet3/tree/mas
 Adaptations were made to the files found in pybullet_evo to enable the dynamic adaptation
 of design parameters during the training process.
 
+### Why do you use an older version of rlkit?
+When I started working on this project, the tag v0.1.2 was the newest. There are quite many changes from 0.1.2 to 0.2.0, I will tackle this update in the future ;)
+
 ## Installation
+
+Make sure that PyTorch is installed. You find more information here: https://pytorch.org/
 
 First, clone this repository to your local computer as usual.
 Then, install the required packages via pip by executing `pip3 install -r requirements.txt`.
-
-Make sure that PyTorch is installed. You find more information here: https://pytorch.org/
 
 The SAC implementation used differs slightly from the original version in
 rlkit developed by Vitchyr Pong. For your convenience, I provide a forked repository. However,
@@ -45,13 +48,13 @@ all credit for the SAC implementation goes to [Vitchyr Pong](https://github.com/
 
 Clone the adapted rlkit with
 ```bash
-git clone ADDREPOHERE
+git clone https://github.com/ksluck/Coadaptation-rlkit.git
 ```
 Now, set in your terminal the environment variable PYTHONPATH with
 ```bash
-export PYTHONPATH=/path/to/REPONAME
+export PYTHONPATH=/path/to/Coadaptation-rlkit/
 ```
-where the folder `/path/to/REPONAME` contains the folder `rlkit`. This enables us
+where the folder `/path/to/Coadaptation-rlkit` contains the folder `rlkit`. This enables us
 to import rlkit with `import rlkit`.
 
 You may have to set the environmental variable every time you open a new terminal.
