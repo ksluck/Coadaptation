@@ -1,6 +1,7 @@
 # Fast Evolution through Actor-Critic Reinforcement Learning
-This is the official repository providing a refactored implementation of the data-driven
-design optimization method presented in the paper **Data-efficient Co-Adaptation of Morphology and Behaviour with Deep Reinforcement Learning**.
+This is the official repository providing a refactored implementation of the data-driven design optimization method presented in the paper [**Data-efficient Co-Adaptation of Morphology and Behaviour with Deep Reinforcement Learning**](https://research.fb.com/publications/data-efficient-co-adaptation-of-morphology-and-behaviour-with-deep-reinforcement-learning/). 
+This paper was presented on the Conference on Robot Learning in 2019. 
+The website for this project can be found [here](https://sites.google.com/view/drl-coadaptation/home).
 
 At the moment, the repository contains a basic implementation of the proposed algorithm and its baseline. We use particle swarm optimization on the Q-function, which is used as a surrogate function predicting the performance of design candidates and, thus, avoiding the necessity to simulate/evaluate design candidates. The baseline uses also particle swarm optimization but evaluates design candidates in simulation instead.
 
