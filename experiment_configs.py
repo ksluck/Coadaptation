@@ -59,7 +59,8 @@ sac_pso_batch = {
     ),
     'env' : dict(
         env_name='HalfCheetah',
-        render=True,
+        render=False,
+        record_video=True,
     ),
     }
 
