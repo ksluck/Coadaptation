@@ -91,10 +91,14 @@ class SoftActorCritic(RL_algorithm):
             train_pop: Boolean. If true the population networks will be trained.
         """
         if train_ind:
+          # Get only samples from the species buffer
+          self._replay.set_mode('species')
           self._algorithm_ind.num_updates_per_train_call = self._variant_spec['num_updates_per_epoch']
           self._algorithm_ind._try_to_train()
 
         if train_pop:
+          # Get only samples from the population buffer
+          self._replay.set_mode('population')
           self._algorithm_pop.num_updates_per_train_call = self._variant_pop['num_updates_per_epoch']
           self._algorithm_pop._try_to_train()
 
