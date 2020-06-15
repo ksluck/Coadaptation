@@ -1,9 +1,9 @@
 from rlkit.torch.sac.policies import TanhGaussianPolicy
-from rlkit.torch.sac.sac import SoftActorCritic
+# from rlkit.torch.sac.sac import SoftActorCritic
 from rlkit.torch.networks import FlattenMlp
 import numpy as np
 from .rl_algorithm import RL_algorithm
-from rlkit.torch.sac.sac import SoftActorCritic as SoftActorCritic_rlkit
+from rlkit.torch.sac.sac import SACTrainer as SoftActorCritic_rlkit
 import rlkit.torch.pytorch_util as ptu
 import torch
 
@@ -26,40 +26,49 @@ class SoftActorCritic(RL_algorithm):
         self._variant_pop = config['rl_algorithm_config']['algo_params_pop']
         self._variant_spec = config['rl_algorithm_config']['algo_params']
 
-        self._variant_pop['replay_buffer'] = self._replay
-        self._variant_spec['replay_buffer'] = self._replay
-
-        self._ind_qf = networks['individual']['qf']
-        self._ind_vf = networks['individual']['vf']
+        self._ind_qf1 = networks['individual']['qf1']
+        self._ind_qf2 = networks['individual']['qf2']
+        self._ind_qf1_target = networks['individual']['qf1_target']
+        self._ind_qf2_target = networks['individual']['qf2_target']
         self._ind_policy = networks['individual']['policy']
 
-        self._pop_qf = networks['population']['qf']
-        self._pop_vf = networks['population']['vf']
+        self._pop_qf1 = networks['population']['qf1']
+        self._pop_qf2 = networks['population']['qf2']
+        self._pop_qf1_target = networks['population']['qf1_target']
+        self._pop_qf2_target = networks['population']['qf2_target']
         self._pop_policy = networks['population']['policy']
+
+        self._batch_size = config['rl_algorithm_config']['batch_size']
+        self._nmbr_indiv_updates = config['rl_algorithm_config']['indiv_updates']
+        self._nmbr_pop_updates = config['rl_algorithm_config']['pop_updates']
 
         self._alt_alpha = 0.01
         self._algorithm_ind = SoftActorCritic_rlkit(
             env=self._env,
             policy=self._ind_policy,
-            qf=self._ind_qf,
-            vf=self._ind_vf,
+            qf1=self._ind_qf1,
+            qf2=self._ind_qf2,
+            target_qf1=self._ind_qf1_target,
+            target_qf2=self._ind_qf2_target,
             use_automatic_entropy_tuning = False,
-            alt_alpha = self._alt_alpha,
+            # alt_alpha = self._alt_alpha,
             **self._variant_spec
         )
 
         self._algorithm_pop = SoftActorCritic_rlkit(
             env=self._env,
             policy=self._pop_policy,
-            qf=self._pop_qf,
-            vf=self._pop_vf,
+            qf1=self._pop_qf1,
+            qf2=self._pop_qf2,
+            target_qf1=self._pop_qf1_target,
+            target_qf2=self._pop_qf2_target,
             use_automatic_entropy_tuning = False,
-            alt_alpha = self._alt_alpha,
+            # alt_alpha = self._alt_alpha,
             **self._variant_pop
         )
 
-        self._algorithm_ind.to(ptu.device)
-        self._algorithm_pop.to(ptu.device)
+        # self._algorithm_ind.to(ptu.device)
+        # self._algorithm_pop.to(ptu.device)
 
     def episode_init(self):
         """ Initializations to be done before the first episode.
@@ -70,18 +79,20 @@ class SoftActorCritic(RL_algorithm):
         self._algorithm_ind = SoftActorCritic_rlkit(
             env=self._env,
             policy=self._ind_policy,
-            qf=self._ind_qf,
-            vf=self._ind_vf,
+            qf1=self._ind_qf1,
+            qf2=self._ind_qf2,
+            target_qf1=self._ind_qf1_target,
+            target_qf2=self._ind_qf2_target,
             use_automatic_entropy_tuning = False,
-            alt_alpha = self._alt_alpha,
+            # alt_alpha = self._alt_alpha,
             **self._variant_spec
         )
         # We have only to do this becasue the version of rlkit which we use
         # creates internally a target network
-        vf_dict = self._algorithm_pop.target_vf.state_dict()
-        self._algorithm_ind.target_vf.load_state_dict(vf_dict)
-        self._algorithm_ind.target_vf.eval()
-        self._algorithm_ind.to(ptu.device)
+        # vf_dict = self._algorithm_pop.target_vf.state_dict()
+        # self._algorithm_ind.target_vf.load_state_dict(vf_dict)
+        # self._algorithm_ind.target_vf.eval()
+        # self._algorithm_ind.to(ptu.device)
 
     def single_train_step(self, train_ind=True, train_pop=False):
         """ A single trianing step.
@@ -93,14 +104,20 @@ class SoftActorCritic(RL_algorithm):
         if train_ind:
           # Get only samples from the species buffer
           self._replay.set_mode('species')
-          self._algorithm_ind.num_updates_per_train_call = self._variant_spec['num_updates_per_epoch']
-          self._algorithm_ind._try_to_train()
+          # self._algorithm_ind.num_updates_per_train_call = self._variant_spec['num_updates_per_epoch']
+          # self._algorithm_ind._try_to_train()
+          for _ in range(self._nmbr_indiv_updates):
+              batch = self._replay.random_batch(self._batch_size)
+              self._algorithm_ind.train(batch)
 
         if train_pop:
           # Get only samples from the population buffer
           self._replay.set_mode('population')
-          self._algorithm_pop.num_updates_per_train_call = self._variant_pop['num_updates_per_epoch']
-          self._algorithm_pop._try_to_train()
+          # self._algorithm_pop.num_updates_per_train_call = self._variant_pop['num_updates_per_epoch']
+          # self._algorithm_pop._try_to_train()
+          for _ in range(self._nmbr_pop_updates):
+              batch = self._replay.random_batch(self._batch_size)
+              self._algorithm_pop.train(batch)
 
     @staticmethod
     def create_networks(env, config):
@@ -122,31 +139,41 @@ class SoftActorCritic(RL_algorithm):
         net_size = config['rl_algorithm_config']['net_size']
         hidden_sizes = [net_size] * config['rl_algorithm_config']['network_depth']
         # hidden_sizes = [net_size, net_size, net_size]
-        qf = FlattenMlp(
+        qf1 = FlattenMlp(
             hidden_sizes=hidden_sizes,
             input_size=obs_dim + action_dim,
             output_size=1,
-        )
-        vf = FlattenMlp(
+        ).to(device=ptu.device)
+        qf2 = FlattenMlp(
             hidden_sizes=hidden_sizes,
-            input_size=obs_dim,
+            input_size=obs_dim + action_dim,
             output_size=1,
-        )
+        ).to(device=ptu.device)
+        qf1_target = FlattenMlp(
+            hidden_sizes=hidden_sizes,
+            input_size=obs_dim + action_dim,
+            output_size=1,
+        ).to(device=ptu.device)
+        qf2_target = FlattenMlp(
+            hidden_sizes=hidden_sizes,
+            input_size=obs_dim + action_dim,
+            output_size=1,
+        ).to(device=ptu.device)
         policy = TanhGaussianPolicy(
             hidden_sizes=hidden_sizes,
             obs_dim=obs_dim,
             action_dim=action_dim,
-        )
+        ).to(device=ptu.device)
 
         clip_value = 1.0
-        for p in qf.parameters():
+        for p in qf1.parameters():
             p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
-        for p in vf.parameters():
+        for p in qf2.parameters():
             p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
         for p in policy.parameters():
             p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
 
-        return {'qf' : qf, 'vf' : vf, 'policy' : policy}
+        return {'qf1' : qf1, 'qf2' : qf2, 'qf1_target' : qf1_target, 'qf2_target' : qf2_target, 'policy' : policy}
 
     @staticmethod
     def get_q_network(networks):
@@ -161,7 +188,7 @@ class SoftActorCritic(RL_algorithm):
         Returns:
             The q-network as torch object.
         """
-        return networks['qf']
+        return networks['qf1']
 
     @staticmethod
     def get_policy_network(networks):
