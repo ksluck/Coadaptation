@@ -1,4 +1,9 @@
 import rlkit.torch.pytorch_util as ptu
+import cv2
+import os
+from shutil import copyfile, move
+import time
+import numpy as np
 
 def move_to_cpu():
     """ Set device to cpu for torch.
@@ -67,3 +72,104 @@ def copy_network(network_to, network_from, config, force_cpu=False):
         network_to.to(ptu.device)
     network_to.eval()
     return network_to
+
+class BestEpisodesVideoRecorder(object):
+    def __init__(self, path=None, max_videos=1):
+        self._vid_path = '/tmp/videos' if path is None else path
+
+        self._folder_counter = 0
+        self._keep_n_best = max(max_videos, 1)
+        self._record_evy_n_episodes = 5
+
+        self._frame_width = 200
+        self._frame_height = 200
+        self._fps_per_frame = 0
+
+        self.increase_folder_counter()
+        self._create_vid_stream()
+        self._time_start = time.time()
+
+    def _episodic_reset(self):
+        self._current_episode_reward = 0
+        self._did_at_least_one_step = False
+        self._step_counter = 1
+
+    def reset_recorder(self):
+        self._episode_counter = 0
+        self._episodic_rewards = [-float('inf')] * self._keep_n_best
+        self._episodic_reset()
+
+
+    def increase_folder_counter(self):
+        self._current_vid_path = os.path.join(self._vid_path, str(self._folder_counter))
+        self.reset_recorder()
+        self._folder_counter += 1
+
+    def step(self, env, state, reward, done):
+        if self._episode_counter % self._record_evy_n_episodes == 0:
+            self._current_episode_reward += reward
+            env.camera_adjust()
+            frame = env.render_camera_image((self._frame_width, self._frame_height))
+            frame = frame * 255
+            frame = frame.astype(np.uint8)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self._vid_writer.write(frame)
+            self._did_at_least_one_step = True
+        proc_time = (time.time() - self._time_start)*1000
+        proc_time = 1000/proc_time
+        self._time_start = time.time()
+        self._fps_per_frame += proc_time
+        self._step_counter += 1
+
+    def _do_video_file_rotation(self):
+        for idx, elem in enumerate(self._episodic_rewards):
+            if idx > 1:
+                try:
+                    move(os.path.join(self._current_vid_path, 'video_{}.avi'.format(idx-1)), os.path.join(self._current_vid_path, 'video_{}.avi'.format(idx-2)))
+                except:
+                    pass
+            if self._current_episode_reward < elem:
+                self._episodic_rewards = self._episodic_rewards[1:idx] + [self._current_episode_reward] + self._episodic_rewards[idx:]
+                copyfile(os.path.join(self._current_vid_path, 'current_video.avi'), os.path.join(self._current_vid_path, 'video_{}.avi'.format(idx-1)))
+                break
+            # Will only be true in last iteration and only be hit if last element is to be moved
+            if idx == len(self._episodic_rewards)-1:
+                try:
+                    move(os.path.join(self._current_vid_path, 'video_{}.avi'.format(idx)), os.path.join(self._current_vid_path, 'video_{}.avi'.format(idx-1)))
+                except:
+                    pass
+                self._episodic_rewards = self._episodic_rewards[1:] + [self._current_episode_reward]
+                copyfile(os.path.join(self._current_vid_path, 'current_video.avi'), os.path.join(self._current_vid_path, 'video_{}.avi'.format(idx)))
+
+
+    def reset(self, env, state, reward, done):
+        # final processing of data from previous episode
+        if self._episode_counter % self._record_evy_n_episodes == 0:
+            env.camera_adjust()
+            self._vid_writer.release()
+            if not os.path.exists(self._current_vid_path):
+                os.makedirs(self._current_vid_path)
+            if self._did_at_least_one_step and min(self._episodic_rewards) < self._current_episode_reward:
+                self._do_video_file_rotation()
+            print('Average FPS of last episode: {}'.format(self._fps_per_frame/self._step_counter))
+
+        self._episode_counter += 1
+        self._episodic_reset()
+        # set up everything for this episode if we record
+        if self._episode_counter % self._record_evy_n_episodes == 0:
+            self._create_vid_stream()
+            frame = env.render_camera_image((self._frame_width, self._frame_height))
+            frame = frame * 255
+            frame = frame.astype(np.uint8)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self._vid_writer.write(frame)
+
+            self._time_start = time.time()
+            self._fps_per_frame = 0
+            self._step_counter = 1
+
+    def _create_vid_stream(self):
+        if not os.path.exists(self._current_vid_path):
+            os.makedirs(self._current_vid_path)
+        self._vid_writer = cv2.VideoWriter(os.path.join(self._current_vid_path, 'current_video.avi'),
+            cv2.VideoWriter_fourcc('M','J','P','G'), 30, (self._frame_width, self._frame_height))

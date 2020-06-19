@@ -81,8 +81,8 @@ class Coadaptation(object):
         utils.move_to_cuda(self._config)
 
         # TODO This should not depend on rl_algorithm_config in the future
-        self._episode_length = self._config['rl_algorithm_config']['algo_params']['num_steps_per_epoch']
-        self._reward_scale = self._config['rl_algorithm_config']['algo_params']['reward_scale']
+        self._episode_length = self._config['steps_per_episodes']
+        self._reward_scale = 1.0 #self._config['rl_algorithm_config']['algo_params']['reward_scale']
 
         self._env_class = select_environment(self._config['env']['env_name'])
         self._env = evoenvs.HalfCheetahEnv(config=self._config)
