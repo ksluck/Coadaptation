@@ -1,7 +1,7 @@
 # Fast Evolution through Actor-Critic Reinforcement Learning
 This is the official repository providing a refactored implementation of the data-driven
-design optimization method presented in the paper [**Data-efficient Co-Adaptation of Morphology and Behaviour with Deep Reinforcement Learning**](https://research.fb.com/publications/data-efficient-co-adaptation-of-morphology-and-behaviour-with-deep-reinforcement-learning/). 
-This paper was presented on the Conference on Robot Learning in 2019. 
+design optimization method presented in the paper [**Data-efficient Co-Adaptation of Morphology and Behaviour with Deep Reinforcement Learning**](https://research.fb.com/publications/data-efficient-co-adaptation-of-morphology-and-behaviour-with-deep-reinforcement-learning/).
+This paper was presented on the Conference on Robot Learning in 2019.
 The website for this project can be found [here](https://sites.google.com/view/drl-coadaptation/home).
 
 At the moment, the repository contains a basic implementation of the proposed algorithm and its baseline. We use particle swarm optimization on the Q-function, which is used as a surrogate function predicting the performance of design candidates and, thus, avoiding the necessity to simulate/evaluate design candidates. The baseline uses also particle swarm optimization but evaluates design candidates in simulation instead.
@@ -44,20 +44,19 @@ Make sure that PyTorch is installed. You find more information here: https://pyt
 First, clone this repository to your local computer as usual.
 Then, install the required packages via pip by executing `pip3 install -r requirements.txt`.
 
-The SAC implementation used differs slightly from the original version in
-rlkit developed by Vitchyr Pong. For your convenience, I provide a forked repository. However,
-all credit for the SAC implementation goes to [Vitchyr Pong](https://github.com/vitchyr/rlkit).
+The current version uses now the latest version of rlkit by  [Vitchyr Pong](https://github.com/vitchyr/rlkit).
 
-Clone the adapted rlkit with
+Clone the rlkit with
 ```bash
-git clone https://github.com/ksluck/Coadaptation-rlkit.git
+git clone https://github.com/vitchyr/rlkit.git
 ```
 Now, set in your terminal the environment variable PYTHONPATH with
 ```bash
-export PYTHONPATH=/path/to/Coadaptation-rlkit/
+export PYTHONPATH=/path/to/rlkit/
 ```
-where the folder `/path/to/Coadaptation-rlkit` contains the folder `rlkit`. This enables us
+where the folder `/path/to/rlkit` contains the folder `rlkit`. This enables us
 to import rlkit with `import rlkit`.
+Alternatively, follow the installations guidelines you can find in the rlkit repository.
 
 You may have to set the environmental variable every time you open a new terminal.
 
@@ -89,3 +88,9 @@ The design vector; And the subsequent, cumulative rewards for each episode/trial
 
 The file `ADDVIZFILE` provieds a basic jupyter notebook to visualize the collected
 data.
+
+## Changelog
+ - 19 June 2020:
+    - Updated the repository to use the current version of rlkit. However, we cannot set our own alpha parameter for SAC, so it might come with some initial performance decrease.
+    - Added a basic Video recorder which retains the best 5 episodes recorded
+    - Fixed a bug which was introduced when refactoring the code
