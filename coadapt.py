@@ -91,23 +91,21 @@ class Coadaptation(object):
             max_replay_buffer_size_species=int(1e6),
             max_replay_buffer_size_population=int(1e7))
 
-        self._networks = {
-            'individual' : SoftActorCritic.create_networks(env=self._env, config=config),
-            'population' : SoftActorCritic.create_networks(env=self._env, config=config),
-        }
-
         self._rl_alg_class = select_rl_alg(self._config['rl_method'])
-        self._rl_alg = SoftActorCritic(config=self._config, env=self._env , replay=self._replay, networks=self._networks)
-        self._rl_alg_class = SoftActorCritic
+
+        self._networks = self._rl_alg_class.create_networks(env=self._env, config=config)
+
+        self._rl_alg = self._rl_alg_class(config=self._config, env=self._env , replay=self._replay, networks=self._networks)
 
         self._do_alg_class = select_design_opt_alg(self._config['design_optim_method'])
         self._do_alg = self._do_alg_class(config=self._config, replay=self._replay, env=self._env)
 
-        if self._config['use_cpu_for_rollout']:
-            utils.move_to_cpu()
-        else:
-            utils.move_to_cuda(self._config)
-        self._policy_cpu = self._rl_alg_class.get_policy_network(SoftActorCritic.create_networks(env=self._env, config=config))
+        # if self._config['use_cpu_for_rollout']:
+        #     utils.move_to_cpu()
+        # else:
+        #     utils.move_to_cuda(self._config)
+        # # TODO this is a temp fix - should be cleaned up, not so hppy with it atm
+        # self._policy_cpu = self._rl_alg_class.get_policy_network(SoftActorCritic.create_networks(env=self._env, config=config)['individual'])
         utils.move_to_cuda(self._config)
 
         self._last_single_iteration_time = 0
@@ -170,7 +168,8 @@ class Coadaptation(object):
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['population'])
         else:
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['individual'])
-        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        # self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        self._policy_cpu = policy_gpu_ind
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
@@ -210,7 +209,8 @@ class Coadaptation(object):
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['population'])
         else:
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['individual'])
-        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        # self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        self._policy_cpu = policy_gpu_ind
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()

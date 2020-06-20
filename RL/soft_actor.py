@@ -126,6 +126,26 @@ class SoftActorCritic(RL_algorithm):
         These networks have to be created before instantiating this class and
         used in the constructor.
 
+        Args:
+            config: A configuration dictonary containing population and
+                individual networks
+
+        Returns:
+            A dictonary which contains the networks.
+        """
+        network_dict = {
+            'individual' : SoftActorCritic._create_networks(env=env, config=config),
+            'population' : SoftActorCritic._create_networks(env=env, config=config),
+        }
+        return network_dict
+
+    @staticmethod
+    def _create_networks(env, config):
+        """ Creates all networks necessary for SAC.
+
+        These networks have to be created before instantiating this class and
+        used in the constructor.
+
         TODO: Maybe this should be reworked one day...
 
         Args:
