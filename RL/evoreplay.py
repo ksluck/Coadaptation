@@ -19,7 +19,7 @@ class EvoReplayLocalGlobalStart(ReplayBuffer):
         """
         Add a transition tuple.
         """
-        if self._mode == "species":
+        if True or self._mode == "species": # This is deactivated now
             self._species_buffer.add_sample(observation=observation, action=action, reward=reward, next_observation=next_observation,
                            terminal=terminal, env_info={}, **kwargs)
             if self._expect_init_state:
