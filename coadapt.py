@@ -121,7 +121,6 @@ class Coadaptation(object):
         etc.
 
         """
-        utils.copy_pop_to_ind(networks_pop=self._networks['population'], networks_ind=self._networks['individual'])
         # self._rl_alg.initialize_episode(init_networks = True, copy_from_gobal = True)
         self._rl_alg.episode_init()
 

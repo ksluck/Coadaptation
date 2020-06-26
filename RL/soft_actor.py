@@ -6,6 +6,7 @@ from .rl_algorithm import RL_algorithm
 from rlkit.torch.sac.sac import SACTrainer as SoftActorCritic_rlkit
 import rlkit.torch.pytorch_util as ptu
 import torch
+import utils
 
 # networks = {individual:, population:}
 class SoftActorCritic(RL_algorithm):
@@ -87,6 +88,8 @@ class SoftActorCritic(RL_algorithm):
             # alt_alpha = self._alt_alpha,
             **self._variant_spec
         )
+        if self._config['rl_algorithm_config']['copy_from_gobal']:
+            utils.copy_pop_to_ind(networks_pop=self._networks['population'], networks_ind=self._networks['individual'])
         # We have only to do this becasue the version of rlkit which we use
         # creates internally a target network
         # vf_dict = self._algorithm_pop.target_vf.state_dict()
