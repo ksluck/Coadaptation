@@ -8,6 +8,7 @@ from RL.evoreplay import EvoReplayLocalGlobalStart
 import numpy as np
 import os
 import csv
+import torch
 
 def select_design_opt_alg(alg_name):
     """ Selects the design optimization method.
@@ -149,6 +150,7 @@ class Coadaptation(object):
         self._episode_counter += 1
         self.execute_policy()
         self.save_logged_data()
+        self.save_networks()
 
     def collect_training_experience(self):
         """ Collect training data.
@@ -231,25 +233,40 @@ class Coadaptation(object):
     def save_networks(self):
         """ Saves the networks on the disk.
         """
+        if not self._config['save_networks']:
+            return
+        
         checkpoints_pop = {}
-        for key in self._networks['population']:
-            checkpoints_pop[key] = checkpoints_pop[key].state_dict()
+        for key, net in self._networks['population'].items():
+            checkpoints_pop[key] = net.state_dict()
 
         checkpoints_ind = {}
-        for key in self._networks['individual']:
-            checkpoints_ind[key] = checkpoints_ind[key].state_dict()
+        for key, net in self._networks['individual'].items():
+            checkpoints_ind[key] = net.state_dict()
 
         checkpoint = {
             'population' : checkpoints_pop,
             'individual' : checkpoints_ind,
         }
         file_path = os.path.join(self._config['data_folder_experiment'], 'checkpoints')
-        torch.save(checkpoint, os.path.join(file_path, 'checkpoint_{}.chk'.format(self._counter)))
+        if not os.path.exists(file_path):
+          os.makedirs(file_path)
+        torch.save(checkpoint, os.path.join(file_path, 'checkpoint_design_{}.chk'.format(self._design_counter)))
 
-    def load_networks(self):
+    def load_networks(self, path):
         """ Loads netwokrs from the disk.
         """
-        pass
+        model_data = torch.load(path) #, map_location=ptu.device)
+
+        model_data_pop = model_data['population']
+        for key, net in self._networks['population'].items():
+            params = model_data_pop[key]
+            net.load_state_dict(params)
+
+        model_data_ind = model_data['individual']
+        for key, net in self._networks['individual'].items():
+            params = model_data_ind[key]
+            net.load_state_dict(params)
 
     def save_logged_data(self):
         """ Saves the logged data to the disk as csv files.
