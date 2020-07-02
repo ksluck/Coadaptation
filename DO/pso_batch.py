@@ -21,31 +21,36 @@ class PSO_batch(Design_Optimization):
         self._replay.set_mode('start')
         initial_state = self._replay.random_batch(self._state_batch_size)
         initial_state = initial_state['observations']
-        initial_state = initial_state[:,:-len(design)]
-        state_tensor = torch.from_numpy(initial_state).to(device=ptu.device, dtype=torch.float32)
+        design_idxs = self._env.get_design_dimensions()
+        # initial_state = initial_state[:,:-len(design)]
+        # state_tensor = torch.from_numpy(initial_state).to(device=ptu.device, dtype=torch.float32)
 
         # initial_design = np.array(self._current_design)
-        initial_design = np.array(design)
+        # initial_design = np.array(design)
 
         def f_qval(x_input, **kwargs):
             shape = x_input.shape
             cost = np.zeros((shape[0],))
-            for i in range(shape[0]):
-                x = x_input[i:i+1,:]
-                X = (
-                    torch.from_numpy(x)
-                    .to(device=ptu.device, dtype=torch.float32)
-                    .contiguous()
-                    .requires_grad_(False)
-                )
-                X_expand = X.expand(self._state_batch_size, -1)
-                network_input = torch.cat((state_tensor,X_expand), -1)
-                action, _, _, _, _, _, _, _, = policy_network(network_input, deterministic=True)
-                output = q_network(network_input, action)
-                #output = self._vf_pop.forward(input)
-                loss = -output.mean().sum()
-                fval = float(loss.item())
-                cost[i] = fval
+            with torch.no_grad():
+                for i in range(shape[0]):
+                    x = x_input[i:i+1,:]
+                    # X = (
+                    #     torch.from_numpy(x)
+                    #     .to(device=ptu.device, dtype=torch.float32)
+                    #     .contiguous()
+                    #     .requires_grad_(False)
+                    # )
+                    # X_expand = X.expand(self._state_batch_size, -1)
+                    # network_input = torch.cat((state_tensor,X_expand), -1)
+                    state_batch = initial_state.copy()
+                    state_batch[:,design_idxs] = x
+                    network_input = torch.from_numpy(state_batch).to(device=ptu.device, dtype=torch.float32)
+                    action, _, _, _, _, _, _, _, = policy_network(network_input, deterministic=True)
+                    output = q_network(network_input, action)
+                    #output = self._vf_pop.forward(input)
+                    loss = -output.mean().sum()
+                    fval = float(loss.item())
+                    cost[i] = fval
             return cost
 
         lower_bounds = [l for l, _ in self._env.design_params_bounds]

@@ -27,6 +27,10 @@ class HalfCheetahEnv(object):
         if self._record_video:
             self._video_recorder = BestEpisodesVideoRecorder(path=config['data_folder_experiment'], max_videos=5)
 
+        # Which dimensions in the state vector are design parameters?
+        self._design_dims = list(range(self.observation_space.shape[0] - len(self._current_design), self.observation_space.shape[0]))
+        assert len(self._design_dims) == 6
+
     def render(self):
         pass
 
@@ -67,3 +71,6 @@ class HalfCheetahEnv(object):
 
     def get_current_design(self):
         return copy.copy(self._current_design)
+
+    def get_design_dimensions(self):
+        return copy.copy(self._design_dims)
