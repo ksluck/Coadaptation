@@ -6,6 +6,7 @@ from .rl_algorithm import RL_algorithm
 from rlkit.torch.sac.sac import SACTrainer as SoftActorCritic_rlkit
 import rlkit.torch.pytorch_util as ptu
 import torch
+import utils
 
 # networks = {individual:, population:}
 class SoftActorCritic(RL_algorithm):
@@ -42,7 +43,6 @@ class SoftActorCritic(RL_algorithm):
         self._nmbr_indiv_updates = config['rl_algorithm_config']['indiv_updates']
         self._nmbr_pop_updates = config['rl_algorithm_config']['pop_updates']
 
-        self._alt_alpha = 0.01
         self._algorithm_ind = SoftActorCritic_rlkit(
             env=self._env,
             policy=self._ind_policy,
@@ -51,7 +51,6 @@ class SoftActorCritic(RL_algorithm):
             target_qf1=self._ind_qf1_target,
             target_qf2=self._ind_qf2_target,
             use_automatic_entropy_tuning = False,
-            # alt_alpha = self._alt_alpha,
             **self._variant_spec
         )
 
@@ -63,7 +62,6 @@ class SoftActorCritic(RL_algorithm):
             target_qf1=self._pop_qf1_target,
             target_qf2=self._pop_qf2_target,
             use_automatic_entropy_tuning = False,
-            # alt_alpha = self._alt_alpha,
             **self._variant_pop
         )
 
@@ -87,6 +85,8 @@ class SoftActorCritic(RL_algorithm):
             # alt_alpha = self._alt_alpha,
             **self._variant_spec
         )
+        if self._config['rl_algorithm_config']['copy_from_gobal']:
+            utils.copy_pop_to_ind(networks_pop=self._networks['population'], networks_ind=self._networks['individual'])
         # We have only to do this becasue the version of rlkit which we use
         # creates internally a target network
         # vf_dict = self._algorithm_pop.target_vf.state_dict()
@@ -121,6 +121,26 @@ class SoftActorCritic(RL_algorithm):
 
     @staticmethod
     def create_networks(env, config):
+        """ Creates all networks necessary for SAC.
+
+        These networks have to be created before instantiating this class and
+        used in the constructor.
+
+        Args:
+            config: A configuration dictonary containing population and
+                individual networks
+
+        Returns:
+            A dictonary which contains the networks.
+        """
+        network_dict = {
+            'individual' : SoftActorCritic._create_networks(env=env, config=config),
+            'population' : SoftActorCritic._create_networks(env=env, config=config),
+        }
+        return network_dict
+
+    @staticmethod
+    def _create_networks(env, config):
         """ Creates all networks necessary for SAC.
 
         These networks have to be created before instantiating this class and

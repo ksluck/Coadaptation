@@ -34,9 +34,6 @@ repository can be found [here](https://github.com/bulletphysics/bullet3/tree/mas
 Adaptations were made to the files found in pybullet_evo to enable the dynamic adaptation
 of design parameters during the training process.
 
-### Why do you use an older version of rlkit?
-When I started working on this project, the tag v0.1.2 was the newest. There are quite many changes from 0.1.2 to 0.2.0, I will tackle this update in the future ;)
-
 ## Installation
 
 Make sure that PyTorch is installed. You find more information here: https://pytorch.org/
@@ -44,7 +41,7 @@ Make sure that PyTorch is installed. You find more information here: https://pyt
 First, clone this repository to your local computer as usual.
 Then, install the required packages via pip by executing `pip3 install -r requirements.txt`.
 
-The current version uses now the latest version of rlkit by  [Vitchyr Pong](https://github.com/vitchyr/rlkit).
+The current version of Coadapt is using now the latest version of rlkit by  [Vitchyr Pong](https://github.com/vitchyr/rlkit).
 
 Clone the rlkit with
 ```bash
@@ -90,6 +87,8 @@ The file `ADDVIZFILE` provieds a basic jupyter notebook to visualize the collect
 data.
 
 ## Changelog
+ - 9 August 2020:
+   - We use now the current version of rlkit. Alpha parameter can now be set via the experiment_config file.
  - 19 June 2020:
     - Updated the repository to use the current version of rlkit. However, we cannot set our own alpha parameter for SAC, so it might come with some initial performance decrease.
     - Added a basic Video recorder which retains the best 5 episodes recorded
