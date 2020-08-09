@@ -43,7 +43,6 @@ class SoftActorCritic(RL_algorithm):
         self._nmbr_indiv_updates = config['rl_algorithm_config']['indiv_updates']
         self._nmbr_pop_updates = config['rl_algorithm_config']['pop_updates']
 
-        self._alt_alpha = 0.01
         self._algorithm_ind = SoftActorCritic_rlkit(
             env=self._env,
             policy=self._ind_policy,
@@ -52,7 +51,6 @@ class SoftActorCritic(RL_algorithm):
             target_qf1=self._ind_qf1_target,
             target_qf2=self._ind_qf2_target,
             use_automatic_entropy_tuning = False,
-            # alt_alpha = self._alt_alpha,
             **self._variant_spec
         )
 
@@ -64,7 +62,6 @@ class SoftActorCritic(RL_algorithm):
             target_qf1=self._pop_qf1_target,
             target_qf2=self._pop_qf2_target,
             use_automatic_entropy_tuning = False,
-            # alt_alpha = self._alt_alpha,
             **self._variant_pop
         )
 
