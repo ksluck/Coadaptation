@@ -8,6 +8,7 @@ from RL.evoreplay import EvoReplayLocalGlobalStart
 import numpy as np
 import os
 import csv
+import torch
 
 def select_design_opt_alg(alg_name):
     """ Selects the design optimization method.
@@ -81,8 +82,8 @@ class Coadaptation(object):
         utils.move_to_cuda(self._config)
 
         # TODO This should not depend on rl_algorithm_config in the future
-        self._episode_length = self._config['rl_algorithm_config']['algo_params']['num_steps_per_epoch']
-        self._reward_scale = self._config['rl_algorithm_config']['algo_params']['reward_scale']
+        self._episode_length = self._config['steps_per_episodes']
+        self._reward_scale = 1.0 #self._config['rl_algorithm_config']['algo_params']['reward_scale']
 
         self._env_class = select_environment(self._config['env']['env_name'])
         self._env = evoenvs.HalfCheetahEnv(config=self._config)
@@ -91,23 +92,21 @@ class Coadaptation(object):
             max_replay_buffer_size_species=int(1e6),
             max_replay_buffer_size_population=int(1e7))
 
-        self._networks = {
-            'individual' : SoftActorCritic.create_networks(env=self._env, config=config),
-            'population' : SoftActorCritic.create_networks(env=self._env, config=config),
-        }
-
         self._rl_alg_class = select_rl_alg(self._config['rl_method'])
-        self._rl_alg = SoftActorCritic(config=self._config, env=self._env , replay=self._replay, networks=self._networks)
-        self._rl_alg_class = SoftActorCritic
+
+        self._networks = self._rl_alg_class.create_networks(env=self._env, config=config)
+
+        self._rl_alg = self._rl_alg_class(config=self._config, env=self._env , replay=self._replay, networks=self._networks)
 
         self._do_alg_class = select_design_opt_alg(self._config['design_optim_method'])
         self._do_alg = self._do_alg_class(config=self._config, replay=self._replay, env=self._env)
 
-        if self._config['use_cpu_for_rollout']:
-            utils.move_to_cpu()
-        else:
-            utils.move_to_cuda(self._config)
-        self._policy_cpu = self._rl_alg_class.get_policy_network(SoftActorCritic.create_networks(env=self._env, config=config))
+        # if self._config['use_cpu_for_rollout']:
+        #     utils.move_to_cpu()
+        # else:
+        #     utils.move_to_cuda(self._config)
+        # # TODO this is a temp fix - should be cleaned up, not so hppy with it atm
+        # self._policy_cpu = self._rl_alg_class.get_policy_network(SoftActorCritic.create_networks(env=self._env, config=config)['individual'])
         utils.move_to_cuda(self._config)
 
         self._last_single_iteration_time = 0
@@ -123,7 +122,6 @@ class Coadaptation(object):
         etc.
 
         """
-        utils.copy_pop_to_ind(networks_pop=self._networks['population'], networks_ind=self._networks['individual'])
         # self._rl_alg.initialize_episode(init_networks = True, copy_from_gobal = True)
         self._rl_alg.episode_init()
 
@@ -152,6 +150,7 @@ class Coadaptation(object):
         self._episode_counter += 1
         self.execute_policy()
         self.save_logged_data()
+        self.save_networks()
 
     def collect_training_experience(self):
         """ Collect training data.
@@ -170,7 +169,8 @@ class Coadaptation(object):
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['population'])
         else:
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['individual'])
-        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        # self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        self._policy_cpu = policy_gpu_ind
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
@@ -210,7 +210,8 @@ class Coadaptation(object):
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['population'])
         else:
             policy_gpu_ind = self._rl_alg_class.get_policy_network(self._networks['individual'])
-        self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        # self._policy_cpu = utils.copy_network(network_to=self._policy_cpu, network_from=policy_gpu_ind, config=self._config, force_cpu=self._config['use_cpu_for_rollout'])
+        self._policy_cpu = policy_gpu_ind
 
         if self._config['use_cpu_for_rollout']:
             utils.move_to_cpu()
@@ -232,25 +233,40 @@ class Coadaptation(object):
     def save_networks(self):
         """ Saves the networks on the disk.
         """
+        if not self._config['save_networks']:
+            return
+
         checkpoints_pop = {}
-        for key in self._networks['population']:
-            checkpoints_pop[key] = checkpoints_pop[key].state_dict()
+        for key, net in self._networks['population'].items():
+            checkpoints_pop[key] = net.state_dict()
 
         checkpoints_ind = {}
-        for key in self._networks['individual']:
-            checkpoints_ind[key] = checkpoints_ind[key].state_dict()
+        for key, net in self._networks['individual'].items():
+            checkpoints_ind[key] = net.state_dict()
 
         checkpoint = {
             'population' : checkpoints_pop,
             'individual' : checkpoints_ind,
         }
         file_path = os.path.join(self._config['data_folder_experiment'], 'checkpoints')
-        torch.save(checkpoint, os.path.join(file_path, 'checkpoint_{}.chk'.format(self._counter)))
+        if not os.path.exists(file_path):
+          os.makedirs(file_path)
+        torch.save(checkpoint, os.path.join(file_path, 'checkpoint_design_{}.chk'.format(self._design_counter)))
 
-    def load_networks(self):
+    def load_networks(self, path):
         """ Loads netwokrs from the disk.
         """
-        pass
+        model_data = torch.load(path) #, map_location=ptu.device)
+
+        model_data_pop = model_data['population']
+        for key, net in self._networks['population'].items():
+            params = model_data_pop[key]
+            net.load_state_dict(params)
+
+        model_data_ind = model_data['individual']
+        for key, net in self._networks['individual'].items():
+            params = model_data_ind[key]
+            net.load_state_dict(params)
 
     def save_logged_data(self):
         """ Saves the logged data to the disk as csv files.
