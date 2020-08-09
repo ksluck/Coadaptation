@@ -235,7 +235,7 @@ class Coadaptation(object):
         """
         if not self._config['save_networks']:
             return
-        
+
         checkpoints_pop = {}
         for key, net in self._networks['population'].items():
             checkpoints_pop[key] = net.state_dict()
