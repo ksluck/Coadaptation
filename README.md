@@ -87,6 +87,8 @@ The file `ADDVIZFILE` provieds a basic jupyter notebook to visualize the collect
 data.
 
 ## Changelog
+ - 20 July 2022:
+   - Fixed an issue where the species/individual replay buffer was never reset.
  - 9 August 2020:
    - We use now the current version of rlkit. Alpha parameter can now be set via the experiment_config file.
  - 19 June 2020:
