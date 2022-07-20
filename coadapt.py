@@ -124,6 +124,7 @@ class Coadaptation(object):
         """
         # self._rl_alg.initialize_episode(init_networks = True, copy_from_gobal = True)
         self._rl_alg.episode_init()
+        self._replay.reset_species_buffer()
 
         self._data_rewards = []
         self._episode_counter = 0
